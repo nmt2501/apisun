@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 /* ================== LƯU LỊCH SỬ ================== */
 // value: 1 = TÀI, 0 = XỈU
 let history = [];
-const MAX_HISTORY = 50;
+const MAX_HISTORY = 30;
 
 /* ================== FETCH NỀN ================== */
 async function fetchSunData() {
