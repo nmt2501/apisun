@@ -10,7 +10,7 @@ let history = [];
 const MAX_HISTORY = 50;
 
 /* ================== API ================== */
-app.get("/api/taixiu", async (req, res) => {
+app.get("/api/tx/sun", async (req, res) => {
   try {
     const { data } = await axios.get(
       "https://sunvip-bh9k.onrender.com/api/taixiu/sun"
@@ -33,33 +33,40 @@ app.get("/api/taixiu", async (req, res) => {
     // dự đoán
     const duDoanRaw = duDoanNangCao(dataPredict);
 
+    // xử lý output theo yêu cầu
+    let duDoanFinal = "Chưa Đủ Dữ Liệu";
+    let doTinCay = 0;
+
+    if (duDoanRaw === "TÀI") {
+      duDoanFinal = "Tài";
+      doTinCay = 85;
+    } else if (duDoanRaw === "XỈU") {
+      duDoanFinal = "Xỉu";
+      doTinCay = 85;
+    }
+
     res.json({
       phien: data.phien || 0,
       xuc_xac_1: data.xuc_xac_1 || 0,
       xuc_xac_2: data.xuc_xac_2 || 0,
       xuc_xac_3: data.xuc_xac_3 || 0,
       tong: data.tong || 0,
-      ket_qua: value === 1 ? "tai" : "xiu",
+      ket_qua: value === 1 ? "Tài" : "Xỉu",
 
       phien_hien_tai: data.phien || 0,
       pattern: pattern,
-      du_doan:
-        duDoanRaw === "TÀI"
-          ? "tai"
-          : duDoanRaw === "XỈU"
-          ? "xiu"
-          : duDoanRaw,
-      do_tin_cay: history.length >= 20 ? "85%" : "70%"
+      du_doan: duDoanFinal,
+      do_tin_cay: doTinCay
     });
   } catch (err) {
-    res.status(500).json({ error: "API nguồn lỗi" });
+    res.status(500).json({ error: "API Gốc Lỗi" });
   }
 });
 
 /* ================== THUẬT TOÁN ================== */
 
 function duDoan(data) {
-  if (!data || data.length < 10) return "KHÔNG ĐỦ DỮ LIỆU";
+  if (!data || data.length < 10) return "Không Đủ Dữ Liệu";
 
   const k1 = phuongPhapChuoi(data);
   const k2 = phuongPhapXuHuong(data);
@@ -99,7 +106,10 @@ function phuongPhapTanSuat(data) {
 }
 
 function phuongPhapMarkov(data) {
-  let m = [[0, 0], [0, 0]];
+  let m = [
+    [0, 0],
+    [0, 0]
+  ];
   for (let i = 1; i < data.length; i++) {
     m[data[i - 1]][data[i]]++;
   }
