@@ -53,7 +53,7 @@ app.get("/api/tx/sun", async (req, res) => {
       tong: data.tong || 0,
       ket_qua: value === 1 ? "Tài" : "Xỉu",
 
-      phien_hien_tai: data.phien || 0,
+      phien_hien_tai: data.phien_hien_tai || 0,
       pattern: pattern,
       du_doan: duDoanFinal,
       do_tin_cay: doTinCay
