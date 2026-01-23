@@ -13,7 +13,7 @@ const MAX_HISTORY = 50;
 app.get("/api/tx/sun", async (req, res) => {
   try {
     const { data } = await axios.get(
-      "https://sunvip-bh9k.onrender.com/api/taixiu/sun"
+      "https://sunwinsaygex-production.up.railway.app/api/sun"
     );
 
     const value = data.tong >= 11 ? 1 : 0;
