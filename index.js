@@ -31,7 +31,7 @@ async function fetchSunData() {
 
       if (history.length > MAX_HISTORY) history.pop();
 
-      console.log(`[AUTO] Phiên ${data.phien} => ${value ? "TÀI" : "XỈU"}`);
+      console.log(`[AUTO] Phiên ${data.phien_hien_tai} => ${value ? "TÀI" : "XỈU"}`);
     }
   } catch {
     console.log("[AUTO] Lỗi fetch API gốc");
