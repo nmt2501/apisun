@@ -84,13 +84,9 @@ app.get("/api/tx/sun", async (req, res) => {
 
     res.json({
       phien: data.phien || 0,
-      xuc_xac_1: data.xuc_xac_1 || 0,
-      xuc_xac_2: data.xuc_xac_2 || 0,
-      xuc_xac_3: data.xuc_xac_3 || 0,
-      tong: data.tong || 0,
       ket_qua: value === 1 ? "Tài" : "Xỉu",
       
-      phien_hien_tai: data.phien_hien_tai || 0,
+      phien_hien_tai: data.phien_tiep_theo || 0,
       pattern,
       du_doan: duDoanResult.du_doan,
       do_tin_cay: duDoanResult.do_tin_cay
