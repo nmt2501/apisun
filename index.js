@@ -5,9 +5,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 /* ================== LƯU LỊCH SỬ ================== */
-// value: 1 = TÀI, 0 = XỈU
-let history = [];
-const MAX_HISTORY = 25;
+/* value: 1 = TÀI, 0 = XỈU */
+let history = []; // LƯU CŨ -> MỚI
+const MAX_HISTORY = 50;
 
 /* ================== FETCH API GỐC ================== */
 async function fetchSunData() {
@@ -20,8 +20,9 @@ async function fetchSunData() {
 
     const value = data.tong >= 11 ? 1 : 0;
 
+    // PUSH CUỐI → pattern đúng chiều
     if (!history.find(h => h.phien === data.phien)) {
-      history.unshift({
+      history.push({
         phien: data.phien,
         value,
         ket_qua: value ? "Tài" : "Xỉu",
@@ -30,7 +31,7 @@ async function fetchSunData() {
         d3: data.xuc_xac_3
       });
 
-      if (history.length > MAX_HISTORY) history.pop();
+      if (history.length > MAX_HISTORY) history.shift();
 
       console.log(`[AUTO] ${data.phien} => ${value ? "TÀI" : "XỈU"}`);
     }
@@ -43,84 +44,117 @@ setInterval(fetchSunData, 15000);
 fetchSunData();
 
 /* ================== TOOL ================== */
-const mapTX = v => (v === 1 ? "T" : "X");
+const toTX = kq => (kq === "Tài" ? "T" : "X");
+const flip = v => (v === "T" ? "X" : "T");
 
-/* ================== THUẬT TOÁN 1 – PATTERN / CẦU ================== */
-function algoPattern(history) {
-  if (history.length < 6)
-    return { du_doan: "Chưa Đủ Dữ Liệu", do_tin_cay: 0 };
+/* ================== BUILD RUN ================== */
+function buildRuns(pattern) {
+  if (!pattern || pattern.length === 0) return [];
+  const runs = [];
+  let cur = pattern[0];
+  let len = 1;
 
-  const pattern = history.map(h => mapTX(h.value)).join("");
-  const last = pattern.at(-1);
+  for (let i = 1; i < pattern.length; i++) {
+    if (pattern[i] === cur) len++;
+    else {
+      runs.push({ v: cur, l: len });
+      cur = pattern[i];
+      len = 1;
+    }
+  }
+  runs.push({ v: cur, l: len });
+  return runs;
+}
 
-  if (pattern.endsWith("TXTX") || pattern.endsWith("XTXT"))
-    return { du_doan: last === "T" ? "Xỉu" : "Tài", do_tin_cay: 70 };
+function buildCau(pattern, take = 3) {
+  const runs = buildRuns(pattern);
+  if (runs.length === 0) return null;
+  return runs.slice(-take).map(r => r.l).join("-");
+}
 
-  let run = 1;
-  for (let i = pattern.length - 2; i >= 0; i--) {
-    if (pattern[i] === last) run++;
-    else break;
+/* ================== SUY CẦU 4 KÝ TỰ CUỐI ================== */
+function inferFromLast4(pattern) {
+  if (pattern.length < 4) return null;
+
+  const last4 = pattern.slice(-4);
+  let runs = [];
+  let cur = last4[0], len = 1;
+
+  for (let i = 1; i < last4.length; i++) {
+    if (last4[i] === cur) len++;
+    else {
+      runs.push(len);
+      cur = last4[i];
+      len = 1;
+    }
+  }
+  runs.push(len);
+
+  return runs.join("-");
+}
+
+/* ================== THUẬT TOÁN DỰ ĐOÁN (NGUYÊN BẢN) ================== */
+function predictByAlgorithm(pattern) {
+  if (!pattern || pattern.length < 7) {
+    return {
+      du_doan: "Chưa Đủ Dữ Liệu",
+      do_tin_cay: "0%",
+      cau: buildCau(pattern)
+    };
   }
 
-  if (run >= 3 && run <= 5)
-    return { du_doan: last === "T" ? "Tài" : "Xỉu", do_tin_cay: 75 };
+  const runs = buildRuns(pattern);
+  const last = runs[runs.length - 1];
+  const cau = buildCau(pattern);
+  const last4Cau = inferFromLast4(pattern);
 
-  if (run >= 6)
-    return { du_doan: last === "T" ? "Xỉu" : "Tài", do_tin_cay: 80 };
+  let score = 70;
+  let next = last.v;
+  let reasons = [];
 
-  return { du_doan: "Chưa Đủ Dữ Liệu", do_tin_cay: 0 };
-}
-
-/* ================== THUẬT TOÁN 2 – MD5 STYLE (XU HƯỚNG) ================== */
-function algoMD5(history) {
-  if (history.length < 8)
-    return { du_doan: "Chưa Đủ Dữ Liệu", do_tin_cay: 0 };
-
-  const recent = history.slice(0, 8).map(h => h.value);
-  let score = 0;
-
-  for (let i = 1; i < recent.length; i++) {
-    score += recent[i] === recent[i - 1] ? 1 : -1;
+  /* ===== BỆT ===== */
+  if (last.l >= 6) {
+    next = flip(last.v);
+    score += 20;
+    reasons.push("Bệt dài đảo chiều");
   }
 
-  if (score >= 3)
-    return { du_doan: recent[0] ? "Tài" : "Xỉu", do_tin_cay: 72 };
+  /* ===== BÁM ===== */
+  else if (last.l >= 3 && last.l <= 5) {
+    next = last.v;
+    score += 15;
+    reasons.push("Bám cầu");
+  }
 
-  if (score <= -3)
-    return { du_doan: recent[0] ? "Xỉu" : "Tài", do_tin_cay: 72 };
+  /* ===== 1-1 ===== */
+  if (pattern.slice(-4) === "TXTX" || pattern.slice(-4) === "XTXT") {
+    next = flip(last.v);
+    score += 10;
+    reasons.push("Nhịp 1-1");
+  }
 
-  return { du_doan: "Chưa Đủ Dữ Liệu", do_tin_cay: 0 };
-}
+  /* ===== CẦU KHÓ ===== */
+  if (["1-3-1", "2-1-2", "3-1-2", "2-4-1"].includes(cau)) {
+    next = flip(last.v);
+    score += 15;
+    reasons.push("Cầu khó đảo");
+  }
 
-/* ================== THUẬT TOÁN 3 – ĐIỂM XÚC XẮC ================== */
-function algoDice(history) {
-  if (history.length < 5)
-    return { du_doan: "Chưa Đủ Dữ Liệu", do_tin_cay: 0 };
+  /* ===== SUY 4 KÝ TỰ CUỐI ===== */
+  if (["2-1-1", "1-2-1", "3-1"].includes(last4Cau)) {
+    next = flip(last.v);
+    score += 10;
+    reasons.push("Suy từ 4 ký tự cuối");
+  }
 
-  const avg =
-    history
-      .slice(0, 5)
-      .reduce((s, h) => s + h.d1 + h.d2 + h.d3, 0) / 5;
+  score = Math.min(96, score);
 
-  if (avg >= 12)
-    return { du_doan: "Tài", do_tin_cay: 70 };
-
-  if (avg <= 9)
-    return { du_doan: "Xỉu", do_tin_cay: 70 };
-
-  return { du_doan: "Chưa Đủ Dữ Liệu", do_tin_cay: 0 };
-}
-
-/* ================== BẮT CẦU LOẠN ================== */
-function isChaos(results) {
-  const valid = results.filter(
-    r => r.du_doan !== "Chưa Đủ Dữ Liệu" && r.do_tin_cay >= 55
-  );
-
-  if (valid.length === 0) return true;
-
-  const first = valid[0].du_doan;
-  return valid.some(r => r.du_doan !== first);
+  return {
+    du_doan: next === "T" ? "Tài" : "Xỉu",
+    do_tin_cay: `${score}%`,
+    cau,
+    ly_do: reasons.join(" | ")
+  };
 }
 
 /* ================== API ================== */
@@ -134,7 +168,7 @@ app.get("/api/tx/sun", async (req, res) => {
     const value = data.tong >= 11 ? 1 : 0;
 
     if (!history.find(h => h.phien === data.phien)) {
-      history.unshift({
+      history.push({
         phien: data.phien,
         value,
         ket_qua: value ? "Tài" : "Xỉu",
@@ -142,40 +176,20 @@ app.get("/api/tx/sun", async (req, res) => {
         d2: data.xuc_xac_2,
         d3: data.xuc_xac_3
       });
-      if (history.length > MAX_HISTORY) history.pop();
+      if (history.length > MAX_HISTORY) history.shift();
     }
 
-    const pattern = history.map(h => mapTX(h.value)).join("");
-
-    const r1 = algoPattern(history);
-    const r2 = algoMD5(history);
-    const r3 = algoDice(history);
-
-    if (isChaos([r1, r2, r3])) {
-      return res.json({
-        phien: data.phien,
-        ket_qua: value ? "Tài" : "Xỉu",
-        phien_hien_tai: data.phien_hien_tai,
-        pattern,
-        du_doan: "Chưa Đủ Dữ Liệu",
-        do_tin_cay: "0%",
-        trang_thai: "Cầu Loạn – Đứng Ngoài",
-        id: "BI NHOI - SUNWIN VIP PRO"
-      });
-    }
-
-    const final =
-      [r1, r2, r3]
-        .filter(r => r.du_doan !== "Chưa Đủ Dữ Liệu")
-        .sort((a, b) => b.do_tin_cay - a.do_tin_cay)[0];
+    const pattern = history.map(h => (h.value ? "T" : "X")).join("");
+    const pred = predictByAlgorithm(pattern);
 
     res.json({
       phien: data.phien,
       ket_qua: value ? "Tài" : "Xỉu",
       phien_hien_tai: data.phien_hien_tai,
       pattern,
-      du_doan: final.du_doan,
-      do_tin_cay: `${final.do_tin_cay}%`,
+      du_doan: pred.du_doan,
+      do_tin_cay: pred.do_tin_cay,
+      cau: pred.cau,
       id: "BI NHOI - SUNWIN VIP PRO"
     });
   } catch {
