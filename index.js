@@ -161,7 +161,7 @@ function predictByAlgorithm(pattern) {
 app.get("/api/tx/sun", async (req, res) => {
   try {
     const { data } = await axios.get(
-      "https://sunwinsaygex-production.up.railway.app/api/sun",
+      "https://convinced-campaign-effects-plc.trycloudflare.com/api/tx",
       { timeout: 5000 }
     );
 
