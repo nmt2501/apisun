@@ -13,7 +13,7 @@ const MAX_HISTORY = 50;
 async function fetchSunData() {
   try {
     const { data } = await axios.get(
-      "https://sunwinsaygex-production.up.railway.app/api/sun",
+      "https://convinced-campaign-effects-plc.trycloudflare.com/api/tx",
       { timeout: 5000 }
     );
     if (!data || !data.phien) return;
