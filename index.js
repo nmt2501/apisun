@@ -777,7 +777,7 @@ class AdvancedDeepLearningAI {
     }
     
     getPattern() {
-        if (this.history.length < 50) return { recent: 'đang thu thập...', long: 'đang thu thập...' };
+        if (this.history.length < 5) return { recent: 'đang thu thập...', long: 'đang thu thập...' };
         const tx = this.history.map(h => h.tx);
         // Chuyển sang chữ thường
         const recent = tx.slice(-20).join('').toLowerCase();
