@@ -895,6 +895,8 @@ app.get("/api/tx/sun", async (req, res) => {
 
     const value = data.tong >= 11 ? 1 : 0;
 
+    const patternData = ai.getPattern();
+
     if (!history.find(h => h.phien === data.phien)) {
       history.push({ phien: data.phien, value });
       if (history.length > MAX_HISTORY) history.shift();
@@ -915,6 +917,9 @@ app.get("/api/tx/sun", async (req, res) => {
       xuc_xac: [data.xuc_xac_1, data.xuc_xac_2, data.xuc_xac_3],
       tong: data.tong,
       ket_qua: value ? "Tài" : "Xỉu",
+      pattern_gan_nhat: patternData.recent,
+      pattern_dai: patternData.long,
+      pattern_chu_dao: patternData.discovered,
       phien_hien_tai: Number(data.phien) + 1,
       du_doan: aiPred.prediction,
       do_tin_cay: Math.round(aiPred.confidence * 100) + "%",
