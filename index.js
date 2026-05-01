@@ -915,7 +915,7 @@ app.get("/api/tx/sun", async (req, res) => {
       xuc_xac: [data.xuc_xac_1, data.xuc_xac_2, data.xuc_xac_3],
       tong: data.tong,
       ket_qua: value ? "Tài" : "Xỉu",
-      phien_hien_tai: data.phien_hien_tai || data.phien,
+      phien_hien_tai: Number(data.phien) + 1,
       du_doan: aiPred.prediction,
       do_tin_cay: Math.round(aiPred.confidence * 100) + "%",
       so_thuat_toan: aiPred.algorithms,
