@@ -885,7 +885,7 @@ fetchSunData();
 app.get("/api/tx/sun", async (req, res) => {
   try {
     const { data } = await axios.get(
-      "https://convinced-campaign-effects-plc.trycloudflare.com/api/tx",
+      "https://era-technology-particular-domestic.trycloudflare.com/api/tx",
       { timeout: 10000 }
     );
 
