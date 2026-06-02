@@ -1,12 +1,15 @@
 {
   "name": "apisun",
   "version": "1.0.0",
+  "description": "Advanced AI for Tai Xiu prediction.",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "express": "^4.18.2"
+    "fastify": "^4.x.x",
+    "@fastify/cors": "^8.x.x",
+    "ws": "^8.x.x"
   }
 }
