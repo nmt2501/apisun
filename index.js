@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 // --- CẤU HÌNH ---
 const PORT = 3000;
 const WS_URL = "wss://websocket.azhkthg1.net/websocket?token=";
-const TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJnZW5kZXIiOjAsImNhblZpZXdTdGF0IjpmYWxzZSwiZGlzcGxheU5hbWUiOiJ0dWFuZGVwemFpMjUwMiIsImJvdCI6MCwiaXNNZXJjaGFudCI6ZmFsc2UsInZlcmlmaWVkQmFua0FjY291bnQiOmZhbHNlLCJwbGF5RXZlbnRMb2JieSI6ZmFsc2UsImN1c3RvbWVySWQiOjE2MzQxMjIwMCwiYWZmSWQiOiJTdW53aW4iLCJiYW5uZWQiOmZhbHNlLCJicmFuZCI6InN1bi53aW4iLCJlbWFpbCI6IiIsInRpbWVzdGFtcCI6MTc4MDM3OTAxNDI1NywibG9ja0dhbWVzIjpbXSwiYW1vdW50IjowLCJsb2NrQ2hhdCI6ZmFsc2UsInBob25lVmVyaWZpZWQiOnRydWUsImlwQWRkcmVzcyI6IjExOC42OC4yMDIuMTg1IiwibXV0ZSI6ZmFsc2UsImF2YXRhciI6Imh0dHBzOi8vaW1hZ2VzLnN3aW5zaG9wLm5ldC9pbWFnZXMvYXZhdGFyL2F2YXRhcl8xMC5wbmciLCJwbGF0Zm9ybUlkIjo1LCJ1c2VySWQiOiJhYjhmOTRjNC0yNjE2LTQyNzUtOWMyMy01YTIxZDA1YWZhODkiLCJlbWFpbFZlcmlmaWVkIjpudWxsLCJyZWdUaW1lIjoxNzE3OTQ0NDc0MDY0LCJwaG9uZSI6Ijg0Mzg0NzMzMDQzIiwiZGVwb3NpdCI6dHJ1ZSwidXNlcm5hbWUiOiJTQ19ubXQyNTAyIn0.BVfoHj8ybGbCoKoNMc6P03PLgorTfAX3oOzGKLweJVg"
+const TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJnZW5kZXIiOjAsImNhblZpZXdTdGF0IjpmYWxzZSwiZGlzcGxheU5hbWUiOiJzc2NoaWNobWVtIiwiYm90IjowLCJpc01lcmNoYW50IjpmYWxzZSwidmVyaWZpZWRCYW5rQWNjb3VudCI6ZmFsc2UsInBsYXlFdmVudExvYmJ5IjpmYWxzZSwiY3VzdG9tZXJJZCI6MzI2OTA1OTg1LCJhZmZJZCI6InN1bndpbiIsImJhbm5lZCI6ZmFsc2UsImJyYW5kIjoic3VuLndpbiIsInRpbWVzdGFtcCI6MTc2NTQ2OTYxNjg3MCwibG9ja0dhbWVzIjpbXSwiYW1vdW50IjowLCJsb2NrQ2hhdCI6ZmFsc2UsInBob25lVmVyaWZpZWQiOmZhbHNlLCJpcEFkZHJlc3MiOiIyNDAyOjgwMDo2ZjVmOmNiYzU6ODRjMTo2YzQzOjhmZGQ6NDdkYSIsIm11dGUiOmZhbHNlLCJhdmF0YXIiOiJodHRwczovL2ltYWdlcy5zd2luc2hvcC5uZXQvaW1hZ2VzL2F2YXRhci9hdmF0YXJfMTkucG5nIiwicGxhdGZvcm1JZCI6MiwidXNlcklkIjoiOWQyMTliNGYtMjQxYS00ZmU2LTkyNDItMDQ5MWYxYzRhMDVjIiwicmVnVGltZSI6MTc2MzcyNzkwNzk0MCwicGhvbmUiOiIiLCJkZXBvc2l0IjpmYWxzZSwidXNlcm5hbWUiOiJTQ19naWF0aGluaDIxMzMifQ.XGiELjKKAgIc-0dKYjZFOlDeH2e-LC_PvrvrzPcdY1U";
+
 // --- GLOBAL STATE ---
 let rikResults = [];
 let rikCurrentSession = null;
@@ -922,7 +923,7 @@ app.get("/api/taixiu/history", async () => {
 });
 
 // GET /api/taixiu/ai-stats
-app.get("/api/taixiu/aistats", async () => {
+app.get("/api/taixiu/ai-stats", async () => {
     try {
         const stats = ai.getStats();
         const prediction = ai.predict();
@@ -947,8 +948,9 @@ app.get("/api/taixiu/aistats", async () => {
 app.get("/", async () => { 
     return {
         status: "online",
-        version: "9.0",
-        description: "Hệ thống AI dự đoán với 100+ mẫu cầu",
+        name: "Tùng X Bi",
+        version: "9.0 - Ultra Pattern Recognition & Quantum AI",
+        description: "Hệ thống AI dự đoán với 100+ mẫu cầu và học máy nâng cao",
         algorithms_count: ALGORITHMS.length,
         pattern_database: Object.keys(PATTERN_DATABASE).length + " mẫu cầu",
         features: [
@@ -969,7 +971,7 @@ const start = async () => {
             host: "0.0.0.0"
         });
         console.log(`\n==============================================`);
-        console.log(`Tùng X Bi`);
+        console.log(`Tùng X Bi ULTRA Server`);
         console.log(`==============================================`);
         console.log(`   Port: ${PORT}`);
         console.log(`   Thuật toán: ${ALGORITHMS.length} AI Algorithms`);
