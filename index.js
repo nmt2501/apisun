@@ -1,10 +1,22 @@
-const express = require("express");
-const axios = require("axios");
+import fastify from "fastify";
+import cors from "@fastify/cors";
+import WebSocket from "ws";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// --- CẤU HÌNH ---
+const PORT = 3000;
+const WS_URL = "wss://websocket.azhkthg1.net/websocket?token=";
+const TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJnZW5kZXIiOjAsImNhblZpZXdTdGF0IjpmYWxzZSwiZGlzcGxheU5hbWUiOiJ0dWFuZGVwemFpMjUwMiIsImJvdCI6MCwiaXNNZXJjaGFudCI6ZmFsc2UsInZlcmlmaWVkQmFua0FjY291bnQiOmZhbHNlLCJwbGF5RXZlbnRMb2JieSI6ZmFsc2UsImN1c3RvbWVySWQiOjE2MzQxMjIwMCwiYWZmSWQiOiJTdW53aW4iLCJiYW5uZWQiOmZhbHNlLCJicmFuZCI6InN1bi53aW4iLCJlbWFpbCI6IiIsInRpbWVzdGFtcCI6MTc4MDM3MTYwNDUwNSwibG9ja0dhbWVzIjpbXSwiYW1vdW50IjowLCJsb2NrQ2hhdCI6ZmFsc2UsInBob25lVmVyaWZpZWQiOnRydWUsImlwQWRkcmVzcyI6IjExOC42OC4yMDIuMTg1IiwibXV0ZSI6ZmFsc2UsImF2YXRhciI6Imh0dHBzOi8vaW1hZ2VzLnN3aW5zaG9wLm5ldC9pbWFnZXMvYXZhdGFyL2F2YXRhcl8xMC5wbmciLCJwbGF0Zm9ybUlkIjo1LCJ1c2VySWQiOiJhYjhmOTRjNC0yNjE2LTQyNzUtOWMyMy01YTIxZDA1YWZhODkiLCJlbWFpbFZlcmlmaWVkIjpudWxsLCJyZWdUaW1lIjoxNzE3OTQ0NDc0MDY0LCJwaG9uZSI6Ijg0Mzg0NzMzMDQzIiwiZGVwb3NpdCI6dHJ1ZSwidXNlcm5hbWUiOiJTQ19ubXQyNTAyIn0.lNI48TKiAmnPgy6JKH3NujYNif_sKn281UlID7c3VOY"
+// --- GLOBAL STATE ---
+let rikResults = [];
+let rikCurrentSession = null;
+let rikWS = null;
+let rikIntervalCmd = null;
 
-/* ================== 🔥 ADD TTOAN ================== */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // --- PATTERN DATABASE ĐẦY ĐỦ ---
 const PATTERN_DATABASE = {
     // Cầu cơ bản (đơn giản)
@@ -777,7 +789,7 @@ class AdvancedDeepLearningAI {
     }
     
     getPattern() {
-        if (this.history.length < 5) return { recent: 'đang thu thập...', long: 'đang thu thập...' };
+        if (this.history.length < 50) return { recent: 'đang thu thập...', long: 'đang thu thập...' };
         const tx = this.history.map(h => h.tx);
         // Chuyển sang chữ thường
         const recent = tx.slice(-20).join('').toLowerCase();
@@ -836,108 +848,287 @@ class AdvancedDeepLearningAI {
 // --- Khởi tạo AI ---
 const ai = new AdvancedDeepLearningAI();
 
-/* ================== LƯU LỊCH SỬ ================== */
-let history = [];
-const MAX_HISTORY = 100;
-
-/* ================== FETCH API ================== */
-async function fetchSunData() {
-  try {
-    const { data } = await axios.get(
-      "https://convinced-campaign-effects-plc.trycloudflare.com/api/tx",
-      { timeout: 10000 }
-    );
-
-    if (!data || !data.phien || typeof data.tong !== "number") return;
-
-    const value = data.tong >= 11 ? 1 : 0;
-
-    if (!history.find(h => h.phien === data.phien)) {
-
-      // ===== LƯU LOCAL =====
-      history.push({
-        phien: data.phien,
-        value
-      });
-
-      if (history.length > MAX_HISTORY) history.shift();
-
-      // ===== 🔥 ADD VÀO AI =====
-      ai.addResult({
-        session: data.phien,
-        total: data.tong,
-        dice: [data.xuc_xac_1, data.xuc_xac_2, data.xuc_xac_3],
-        result: value ? "Tài" : "Xỉu"
-      });
-
-      console.log(`[AUTO] ${data.phien} => ${value ? "TÀI" : "XỈU"}`);
-    }
-
-  } catch (err) {
-    console.log("[AUTO] Lỗi fetch API:", err.message);
-  }
-}
-
-setInterval(fetchSunData, 15000);
-fetchSunData();
-
-/* ================== API ================== */
-app.get("/api/tx/sun", async (req, res) => {
-  try {
-    const { data } = await axios.get(
-      "https://era-technology-particular-domestic.trycloudflare.com/api/tx",
-      { timeout: 10000 }
-    );
-
-    if (!data || typeof data.tong !== "number") {
-      throw new Error("Data API lỗi");
-    }
-
-    const value = data.tong >= 11 ? 1 : 0;
-
-    const patternData = ai.getPattern();
-
-    if (!history.find(h => h.phien === data.phien)) {
-      history.push({ phien: data.phien, value });
-      if (history.length > MAX_HISTORY) history.shift();
-
-      ai.addResult({
-        session: data.phien,
-        total: data.tong,
-        dice: [data.xuc_xac_1, data.xuc_xac_2, data.xuc_xac_3],
-        result: value ? "Tài" : "Xỉu"
-      });
-    }
-
-    // ===== 🔥 CHỈ DÙNG AI =====
-    const aiPred = ai.predict();
-
-    res.json({
-      phien: data.phien,
-      xuc_xac: [data.xuc_xac_1, data.xuc_xac_2, data.xuc_xac_3],
-      tong: data.tong,
-      ket_qua: value ? "Tài" : "Xỉu",
-      pattern_gan_nhat: patternData.recent,
-      pattern_dai: patternData.long,
-      pattern_chu_dao: patternData.discovered,
-      phien_hien_tai: Number(data.phien) + 1,
-      du_doan: aiPred.prediction,
-      do_tin_cay: Math.round(aiPred.confidence * 100) + "%",
-      so_thuat_toan: aiPred.algorithms,
-      id: "BI NHOI - SUNWIN AI ONLY"
-    });
-
-  } catch (err) {
-    console.error("API ERROR:", err.message);
-
-    res.status(500).json({
-      error: "API Gốc Lỗi",
-      detail: err.message
-    });
-  }
+// --- API SERVER ---
+const app = fastify({ 
+    logger: false 
 });
 
-/* ================== START ================== */
-app.listen(PORT, () => {
-  console.log("🚀 AI SUNWIN RUNNING ON PORT", PORT);
+await app.register(cors, { 
+    origin: "*" 
+});
+
+// GET /api/taixiu/sunwin
+app.get("/api/taixiu/sunwin", async (request, reply) => {
+    try {
+        const valid = rikResults.filter((r) => r.dice?.length === 3);
+        const lastResult = valid.length ? valid[0] : null;
+        const currentPrediction = ai.predict();
+        const pattern = ai.getPattern();
+
+        if (!lastResult) {
+            return {
+                id: "Tùng X Bi",
+                status: "đang chờ dữ liệu phiên đầu tiên...",
+                phien_truoc: null,
+                tong: null,
+                ket_qua: "đang chờ...",
+                pattern_gan_nhat: pattern.recent,
+                pattern_dai: pattern.long,
+                phien_hien_tai: null,
+                du_doan: "đang tính...",
+                do_tin_cay_ai: "50%",
+            };
+        }
+
+        return {
+            id: "Tùng X Bi",
+            phien_truoc: lastResult.session,
+            xuc_xac: lastResult.dice,
+            tong: lastResult.total,
+            ket_qua: lastResult.result.toLowerCase(),
+            pattern_gan_nhat: pattern.recent,
+            pattern_dai: pattern.long,
+            pattern_chu_dao: pattern.discovered,
+            phien_hien_tai: lastResult.session + 1,
+            du_doan: currentPrediction.prediction,
+            do_tin_cay_ai: `${(currentPrediction.confidence * 100).toFixed(1)}%`,
+        };
+    } catch (error) {
+        console.error('Lỗi API /api/taixiu/sunwin:', error);
+        return {
+            id: "GiaThinhzZz Sunwin AI",
+            error: "Hệ thống đang xử lý lỗi hoặc chưa đủ dữ liệu."
+        };
+    }
+});
+
+// GET /api/taixiu/history
+app.get("/api/taixiu/history", async () => { 
+    try {
+        const valid = rikResults.filter((r) => r.dice?.length === 3);
+        if (!valid.length) return { message: "chưa có dữ liệu." };
+        
+        return valid.slice(0, 30).map((i) => ({
+            session: i.session,
+            dice: i.dice,
+            total: i.total,
+            result: i.result.toLowerCase(),
+            tx: i.total >= 11 ? 'T' : 'X'
+        }));
+    } catch (e) {
+        console.error('Lỗi API /api/taixiu/history:', e);
+        return { message: "lỗi hệ thống" };
+    }
+});
+
+// GET /api/taixiu/ai-stats
+app.get("/api/taixiu/aistats", async () => {
+    try {
+        const stats = ai.getStats();
+        const prediction = ai.predict();
+        const pattern = ai.getPattern();
+        
+        return {
+            status: "online",
+            ai_version: "9.0 - Ultra Pattern Recognition",
+            current_prediction: prediction.prediction,
+            confidence: `${(prediction.confidence * 100).toFixed(1)}%`,
+            algorithms_active: prediction.algorithms,
+            pattern_dominant: pattern.discovered,
+            algorithm_stats: stats
+        };
+    } catch (e) {
+        console.error('Lỗi API /api/taixiu/ai-stats:', e);
+        return { error: "Lỗi hệ thống" };
+    }
+});
+
+// GET /
+app.get("/", async () => { 
+    return {
+        status: "online",
+        version: "9.0",
+        description: "Hệ thống AI dự đoán với 100+ mẫu cầu",
+        algorithms_count: ALGORITHMS.length,
+        pattern_database: Object.keys(PATTERN_DATABASE).length + " mẫu cầu",
+        features: [
+            "Ultra Pattern Recognition (100+ mẫu)",
+            "Quantum Adaptive AI",
+            "Smart Bridge Detection",
+            "Real-time Adaptive Learning",
+            "Multi-layer Pattern Fusion"
+        ]
+    };
+});
+
+// --- SERVER START ---
+const start = async () => {
+    try {
+        await app.listen({
+            port: PORT,
+            host: "0.0.0.0"
+        });
+        console.log(`\n==============================================`);
+        console.log(`🚀 GiaThinhzZz Sunwin AI ULTRA Server`);
+        console.log(`==============================================`);
+        console.log(`   Port: ${PORT}`);
+        console.log(`   Thuật toán: ${ALGORITHMS.length} AI Algorithms`);
+        console.log(`   Pattern Database: ${Object.keys(PATTERN_DATABASE).length} mẫu`);
+        console.log(`   Features: Quantum AI + Smart Bridge + Deep Learning`);
+        console.log(`==============================================`);
+    } catch (err) {
+        console.error('❌ Lỗi khởi động server:', err);
+        process.exit(1);
+    }
+};
+
+// --- WEBSOCKET HANDLERS ---
+function decodeBinaryMessage(data) {
+    try {
+        const message = new TextDecoder().decode(data);
+        if (message.startsWith("[") || message.startsWith("{")) {
+            return JSON.parse(message);
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+function sendRikCmd1005() {
+    if (rikWS?.readyState === WebSocket.OPEN) {
+        try {
+            rikWS.send(JSON.stringify([6, "MiniGame", "taixiuPlugin", {
+                cmd: 1005
+            }]));
+        } catch (e) {
+            console.error("Lỗi gửi lệnh 1005:", e.message);
+        }
+    }
+}
+
+function connectRikWebSocket() {
+    console.log("\n🔌 Đang kết nối WebSocket...");
+    
+    if (rikWS && (rikWS.readyState === WebSocket.OPEN || rikWS.readyState === WebSocket.CONNECTING)) {
+        rikWS.close();
+    }
+    clearInterval(rikIntervalCmd);
+
+    try {
+        rikWS = new WebSocket(`${WS_URL}${TOKEN}`);
+    } catch (e) {
+         console.error("Lỗi tạo WebSocket:", e.message);
+         setTimeout(connectRikWebSocket, 5000);
+         return;
+    }
+
+    rikWS.on("open", () => {
+        console.log("✅ WebSocket connected - Đang xác thực...");
+        
+        const authPayload = [1, "MiniGame", "SC_nmt2502", "Tkwong5579", {
+            info: JSON.stringify({
+                ipAddress: "118.68.202.185",
+                wsToken: TOKEN,
+                userId: "ab8f94c4-2616-4275-9c23-5a21d05afa89",
+                username: "SC_nmt2502",
+                timestamp: Date.now(),
+            }),
+            signature: "73715AE4A7139C192CFB0989CE676969DE83F672F202AAB679ED18E61FFF6AAA296CC3DCB84262D9F0D8C216B8C03D1C310B248A122A4BC3643924ECA5FFD39A3133500517FDDDE8FBC796930AEB2377BA4D277749ABE4FAAF27479CDBB4BC1CF3B16141C8278086B9854D72E8BBE1A70E7A7D91B2C165104B852B0F556ED990",
+            pid: 5,
+            subi: true,
+        }];
+        
+        try {
+             rikWS.send(JSON.stringify(authPayload));
+        } catch (e) {
+             console.error("Lỗi gửi xác thực:", e.message);
+        }
+       
+        rikIntervalCmd = setInterval(sendRikCmd1005, 5000);
+    });
+
+    rikWS.on("message", (data) => {
+        try {
+            const json = typeof data === "string" ? JSON.parse(data) : decodeBinaryMessage(data);
+            if (!json) return;
+
+            if (json.session && Array.isArray(json.dice)) {
+                const record = {
+                    session: json.session,
+                    dice: json.dice,
+                    total: json.total,
+                    result: json.result,
+                };
+                
+                const parsed = ai.addResult(record);
+                
+                if (!rikCurrentSession || record.session > rikCurrentSession) {
+                    rikCurrentSession = record.session;
+                    rikResults.unshift(record);
+                    if (rikResults.length > 100) rikResults.pop();
+                }
+                
+                const prediction = ai.predict();
+                console.log(`\n==============================================`);
+                console.log(`📥 PHIÊN ${parsed.session}: ${parsed.result} (${parsed.total})`);
+                console.log(`🔮 DỰ ĐOÁN ${parsed.session + 1}: **${prediction.prediction.toUpperCase()}**`);
+                console.log(`🎯 CONFIDENCE: ${(prediction.confidence * 100).toFixed(1)}%`);
+                console.log(`🤖 ALGORITHMS: ${prediction.algorithms}/${ALGORITHMS.length}`);
+                
+            } 
+            else if (Array.isArray(json) && json[1]?.htr) {
+                const newHistory = json[1].htr
+                    .map((i) => ({
+                        session: i.sid,
+                        dice: [i.d1, i.d2, i.d3],
+                        total: i.d1 + i.d2 + i.d3,
+                        result: i.d1 + i.d2 + i.d3 >= 11 ? "Tài" : "Xỉu",
+                    }))
+                    .sort((a, b) => a.session - b.session);
+
+                ai.loadHistory(newHistory);
+                rikResults = newHistory.slice(-50).sort((a, b) => b.session - a.session);
+
+                const prediction = ai.predict();
+                const stats = ai.getStats();
+
+                console.log(`\n==============================================`);
+                console.log(`📊 Đã tải ${newHistory.length} kết quả lịch sử`);
+                console.log(`🤖 ULTRA PATTERN AI ĐÃ SẴN SÀNG`);
+                console.log(`==============================================`);
+                console.log(`🎯 Confidence: ${(prediction.confidence * 100).toFixed(1)}%`);
+                
+                const algoArray = Object.entries(stats)
+                    .map(([key, value]) => ({ key, ...value }))
+                    .sort((a, b) => parseFloat(b.weight) - parseFloat(a.weight))
+                    .slice(0, 3);
+                
+                console.log(`📈 Top 3 thuật toán:`);
+                algoArray.forEach((algo, idx) => {
+                    console.log(`   ${idx + 1}. ${algo.name}: WGT ${algo.weight} | ACC ${algo.accuracy}`);
+                });
+            }
+        } catch (e) {
+            console.error("❌ Parse message error:", e.message);
+        }
+    });
+
+    rikWS.on("close", () => {
+        console.log("🔌 WebSocket disconnected. Reconnecting in 3s...");
+        clearInterval(rikIntervalCmd);
+        setTimeout(connectRikWebSocket, 3000);
+    });
+
+    rikWS.on("error", (err) => {
+        console.error("🔌 WebSocket error:", err.message);
+        rikWS.close();
+    });
+}
+
+// Khởi động Server và WebSocket
+start().then(() => {
+    connectRikWebSocket();
+}).catch(err => {
+    console.error('Failed to start application:', err);
 });
