@@ -1026,15 +1026,15 @@ function connectRikWebSocket() {
     rikWS.on("open", () => {
         console.log("✅ WebSocket connected - Đang xác thực...");
         
-        const authPayload = [1, "MiniGame", "SC_nmt2502", "Tkwong5579", {
+        const authPayload = [1, "MiniGame", "SC_giathinh2133", "thinh211", {
             info: JSON.stringify({
-                ipAddress: "118.68.202.185",
+                ipAddress: "2402:800:62cd:b4d1:8c64:a3c9:12bf:c19a",
                 wsToken: TOKEN,
-                userId: "ab8f94c4-2616-4275-9c23-5a21d05afa89",
-                username: "SC_nmt2502",
+                userId: "cdbaf598-e4ef-47f8-b4a6-a4881098db86",
+                username: "SC_hellokietne212",
                 timestamp: Date.now(),
             }),
-            signature: "73715AE4A7139C192CFB0989CE676969DE83F672F202AAB679ED18E61FFF6AAA296CC3DCB84262D9F0D8C216B8C03D1C310B248A122A4BC3643924ECA5FFD39A3133500517FDDDE8FBC796930AEB2377BA4D277749ABE4FAAF27479CDBB4BC1CF3B16141C8278086B9854D72E8BBE1A70E7A7D91B2C165104B852B0F556ED990",
+            signature: "473ABDDDA6BDD74D8F0B6036223B0E3A002A518203A9BB9F95AD763E3BF969EC2CBBA61ED1A3A9E217B52A4055658D7BEA38F89B806285974C7F3F62A9400066709B4746585887D00C9796552671894F826E69EFD234F6778A5DDC24830CEF68D51217EF047644E0B0EB1CB26942EB34AEF114AEC36A6DF833BB10F7D122EA5E",
             pid: 5,
             subi: true,
         }];
