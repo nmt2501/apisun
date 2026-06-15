@@ -7,8 +7,8 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "fastify": "^4.x.x",
-    "@fastify/cors": "^8.x.x",
-    "ws": "^8.x.x"
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "ws": "^8.18.3"
   }
 }
