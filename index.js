@@ -19,10 +19,11 @@ let apiResponseData = {
     xuc_xac_3: null,
     tong: null,
     ket_qua: "",
-    du_doan: "?",
+    phien_hien_tai: null,
     pattern: "",
+    du_doan: "?",
     do_tin_cay: "0%",
-    phan_tich: ""
+    phan_tich: "",
     so_sanh: "Đang chờ kết quả..."
 };
 
@@ -313,11 +314,13 @@ function connectWebSocket() {
                 const successText = isPredictionCorrect ? "✅ ĐÚNG" : "❌ SAI";
 
                 // CẬP NHẬT TRỰC TIẾP - đảm bảo hiển thị đầy đủ dữ liệu
+                apiResponseData.phien = sessionId;
                 apiResponseData.xuc_xac_1 = d1;
                 apiResponseData.xuc_xac_2 = d2;
                 apiResponseData.xuc_xac_3 = d3;
                 apiResponseData.tong = total;
                 apiResponseData.ket_qua = (result === 'T') ? 'Tài' : 'Xỉu';
+                apiResponseData.phien_hien_tai = Number(sessionId) + 1;
                 apiResponseData.du_doan = sessionPrediction;
                 apiResponseData.so_sanh = `Dự đoán: ${sessionPrediction} | Kết quả: ${successText}`;
                 apiResponseData.do_tin_cay = sessionData.confidence + "%";
