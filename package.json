@@ -2,7 +2,6 @@
   "name": "apisun",
   "version": "1.0.0",
   "description": "Advanced AI for Tai Xiu prediction.",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
