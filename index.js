@@ -21,6 +21,8 @@ let apiResponseData = {
     ket_qua: "",
     du_doan: "?",
     pattern: "",
+    do_tin_cay: "0%",
+    phan_tich: ""
     so_sanh: "Đang chờ kết quả..."
 };
 
