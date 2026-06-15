@@ -183,17 +183,31 @@ function getOrCreatePrediction(sessionId) {
     if (sessionPredictions.has(sessionId)) {
         return sessionPredictions.get(sessionId);
     }
-    
-    const newPrediction = predictionAlgorithm.generatePrediction(patternHistory);
-    sessionPredictions.set(sessionId, newPrediction);
-    
+
+    const analysis = predictionAlgorithm.analyze(patternHistory);
+
+    const prediction = analysis.prediction || "Tài";
+
+    sessionPredictions.set(sessionId, {
+        prediction,
+        confidence: analysis.confidence,
+        reasons: analysis.reasons
+    });
+
     if (sessionPredictions.size > 50) {
         const firstKey = sessionPredictions.keys().next().value;
         sessionPredictions.delete(firstKey);
     }
-    
-    console.log(`[🎯] Tạo dự đoán mới cho phiên ${sessionId}: ${newPrediction}`);
-    return newPrediction;
+
+    console.log(
+        `[🎯] ${sessionId} => ${prediction} (${analysis.confidence}%)`
+    );
+
+    return {
+        prediction,
+        confidence: analysis.confidence,
+        reasons: analysis.reasons
+    };
 }
 
 function isNewSession(sessionId) {
@@ -292,8 +306,8 @@ function connectWebSocket() {
                 }
 
                 // Lấy dự đoán
-                const sessionPrediction = getOrCreatePrediction(currentSessionId);
-                const isPredictionCorrect = sessionPrediction === (result === 'T' ? 'Tài' : 'Xỉu');
+                const sessionData = getOrCreatePrediction(currentSessionId);
+                const isPredictionCorrect = sessionData.prediction === (result === 'T' ? 'Tài' : 'Xỉu');
                 const successText = isPredictionCorrect ? "✅ ĐÚNG" : "❌ SAI";
 
                 // CẬP NHẬT TRỰC TIẾP - đảm bảo hiển thị đầy đủ dữ liệu
@@ -304,6 +318,8 @@ function connectWebSocket() {
                 apiResponseData.ket_qua = (result === 'T') ? 'Tài' : 'Xỉu';
                 apiResponseData.du_doan = sessionPrediction;
                 apiResponseData.so_sanh = `Dự đoán: ${sessionPrediction} | Kết quả: ${successText}`;
+                apiResponseData.do_tin_cay = sessionData.confidence + "%";
+                apiResponseData.phan_tich = sessionData.reasons.join(" | ");
                 apiResponseData.pattern = patternHistory.join('');
                 
                 console.log(`🎲 Phiên ${apiResponseData.phien}: ${apiResponseData.xuc_xac_1}-${apiResponseData.xuc_xac_2}-${apiResponseData.xuc_xac_3} = ${apiResponseData.tong} (${apiResponseData.ket_qua})`);
