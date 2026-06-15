@@ -60,35 +60,121 @@ const initialMessages = [
 // ===================================
 // === THUẬT TOÁN DỰ ĐOÁN ===
 // ===================================
-class PredictionAlgorithm {
-    generatePrediction(patternHistory) {
-        let prediction;
-        if (Math.random() < 0.55) {
-            prediction = "Tài";
-        } else {
-            prediction = "Xỉu";
+class PatternAnalyzer {
+    analyze(history = []) {
+        if (history.length < 5) {
+            return {
+                prediction: null,
+                confidence: 0,
+                reasons: ["Không đủ dữ liệu"]
+            };
         }
-        
-        if (patternHistory && patternHistory.length > 0) {
-            const taiCount = patternHistory.filter(p => p === 'T').length;
-            const xiuCount = patternHistory.filter(p => p === 'X').length;
-            
-            if (xiuCount > taiCount + 3) {
-                if (Math.random() < 0.7) {
-                    prediction = "Tài";
-                }
-            } else if (taiCount > xiuCount + 3) {
-                if (Math.random() < 0.6) {
-                    prediction = "Xỉu";
-                }
+
+        const reasons = [];
+        let taiScore = 0;
+        let xiuScore = 0;
+
+        // 1. Cầu bệt
+        const streak = this.getCurrentStreak(history);
+
+        if (streak.side === "T" && streak.length >= 4) {
+            taiScore += 3;
+            reasons.push(`Bệt Tài ${streak.length}`);
+        }
+
+        if (streak.side === "X" && streak.length >= 4) {
+            xiuScore += 3;
+            reasons.push(`Bệt Xỉu ${streak.length}`);
+        }
+
+        // 2. Cầu 1-1
+        if (this.isAlternating(history, 6)) {
+            const last = history[history.length - 1];
+
+            if (last === "T") {
+                xiuScore += 2;
+            } else {
+                taiScore += 2;
+            }
+
+            reasons.push("Cầu 1-1");
+        }
+
+        // 3. Thống kê 10 phiên gần nhất
+        const recent = history.slice(-10);
+
+        const tai = recent.filter(x => x === "T").length;
+        const xiu = recent.filter(x => x === "X").length;
+
+        if (tai >= xiu + 3) {
+            xiuScore += 2;
+            reasons.push("Tài áp đảo gần đây");
+        }
+
+        if (xiu >= tai + 3) {
+            taiScore += 2;
+            reasons.push("Xỉu áp đảo gần đây");
+        }
+
+        // 4. Cầu bẻ
+        if (streak.length >= 6) {
+            if (streak.side === "T") {
+                xiuScore += 4;
+            } else {
+                taiScore += 4;
+            }
+
+            reasons.push("Nguy cơ bẻ cầu");
+        }
+
+        const prediction = taiScore >= xiuScore ? "Tài" : "Xỉu";
+
+        const confidence =
+            Math.min(
+                95,
+                Math.round(
+                    (Math.max(taiScore, xiuScore) /
+                    Math.max(1, taiScore + xiuScore)) * 100
+                )
+            );
+
+        return {
+            prediction,
+            confidence,
+            reasons
+        };
+    }
+
+    getCurrentStreak(history) {
+        const last = history[history.length - 1];
+
+        let count = 1;
+
+        for (let i = history.length - 2; i >= 0; i--) {
+            if (history[i] === last) count++;
+            else break;
+        }
+
+        return {
+            side: last,
+            length: count
+        };
+    }
+
+    isAlternating(history, length) {
+        const data = history.slice(-length);
+
+        for (let i = 1; i < data.length; i++) {
+            if (data[i] === data[i - 1]) {
+                return false;
             }
         }
-        
-        return prediction;
+
+        return true;
     }
 }
 
-const predictionAlgorithm = new PredictionAlgorithm();
+const predictionAlgorithm = new PatternAnalyzer();
 
 // ===================================
 // === Quản lý dự đoán ===
