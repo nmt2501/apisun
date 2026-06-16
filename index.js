@@ -1,7 +1,7 @@
 const express = require("express");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const API_GOC =
   "https://trails-wish-motel-legacy.trycloudflare.com/api/tx";
@@ -388,7 +388,5 @@ app.get("/api/sun/history", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(
-    `Server running: http://localhost:${PORT}/api/sun`
-  );
+  console.log(`Server running on port ${PORT}`);
 });
