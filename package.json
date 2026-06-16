@@ -1,14 +1,9 @@
 {
-  "name": "apisun",
+  "name": "apisunwin",
   "version": "1.0.0",
-  "description": "Advanced AI for Tai Xiu prediction.",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "type": "commonjs",
   "dependencies": {
-    "express": "^5.1.0",
-    "cors": "^2.8.5",
-    "ws": "^8.18.3"
+    "express": "^5.2.1"
   }
 }
