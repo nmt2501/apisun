@@ -38,115 +38,122 @@ function analyzePattern(pattern) {
   const reasons = [];
 
   // =====================
-  // TỰ TÌM PATTERN
+  // ENTROPY (độ loạn)
   // =====================
+  const recent = arr.slice(-10);
+  const tCount = recent.filter(x => x === "T").length;
+  const xCount = recent.length - tCount;
 
-  for (let len = 2; len <= 8; len++) {
+  const entropyBalance = Math.abs(tCount - xCount);
 
-    const current = arr.slice(-len).join("");
-
-    let nextT = 0;
-    let nextX = 0;
-
-    for (let i = 0; i < arr.length - len - 1; i++) {
-
-      const sample =
-        arr.slice(i, i + len).join("");
-
-      if (sample === current) {
-
-        const next = arr[i + len];
-
-        if (next === "T") nextT++;
-        if (next === "X") nextX++;
-      }
-    }
-
-    const total = nextT + nextX;
-
-    if (total < 3) continue;
-
-    if (nextT > nextX) {
-
-      signals.push({
-        side: "T",
-        score: Math.round(
-          (nextT / total) * 100
-        )
-      });
-
-      reasons.push(
-        `Pattern ${current} => T (${nextT}/${total})`
-      );
-
-    } else if (nextX > nextT) {
-
-      signals.push({
-        side: "X",
-        score: Math.round(
-          (nextX / total) * 100
-        )
-      });
-
-      reasons.push(
-        `Pattern ${current} => X (${nextX}/${total})`
-      );
-    }
+  if (entropyBalance <= 1) {
+    return {
+      du_doan: "Không rõ cầu",
+      do_tin_cay: "0%",
+      ly_do: "Cầu quá nhiễu (entropy cao)"
+    };
   }
 
   // =====================
-  // BỆT
+  // STREAK / BỆT
   // =====================
-
+  let last = arr[arr.length - 1];
   let streak = 1;
 
-  const last = arr[arr.length - 1];
-
-  for (
-    let i = arr.length - 2;
-    i >= 0;
-    i--
-  ) {
+  for (let i = arr.length - 2; i >= 0; i--) {
     if (arr[i] === last) streak++;
     else break;
   }
 
-  if (streak >= 4) {
-
+  if (streak >= 3) {
     signals.push({
       side: last,
-      score: Math.min(
-        50,
-        streak * 10
-      )
+      score: Math.min(60, streak * 12)
     });
 
     signals.push({
       side: last === "T" ? "X" : "T",
-      score: Math.min(
-        35,
-        streak * 5
-      )
+      score: Math.min(40, streak * 8)
     });
 
-    reasons.push(
-      `Bệt ${last}${streak}`
-    );
+    reasons.push(`Bệt ${last}${streak}`);
   }
 
   // =====================
-  // MARKOV
+  // ZIGZAG (1-1)
   // =====================
+  let zigzag = true;
 
-  let TT = 0;
-  let TX = 0;
-  let XT = 0;
-  let XX = 0;
+  for (let i = arr.length - 6; i < arr.length - 1; i++) {
+    if (arr[i] === arr[i + 1]) {
+      zigzag = false;
+      break;
+    }
+  }
+
+  if (zigzag) {
+    signals.push({
+      side: last === "T" ? "X" : "T",
+      score: 35
+    });
+
+    reasons.push("ZigZag 1-1");
+  }
+
+  // =====================
+  // BLOCK PATTERN 2-2 / 3-3
+  // =====================
+  const last4 = arr.slice(-4).join("");
+  const last6 = arr.slice(-6).join("");
+
+  if (last4 === "TTXX" || last4 === "XXTT") {
+    signals.push({ side: "T", score: 30 });
+    signals.push({ side: "X", score: 30 });
+    reasons.push("Block 2-2");
+  }
+
+  if (last6 === "TTTXXX" || last6 === "XXXTTT") {
+    signals.push({ side: "T", score: 40 });
+    signals.push({ side: "X", score: 40 });
+    reasons.push("Block 3-3");
+  }
+
+  // =====================
+  // MEAN REVERSION (đảo cầu)
+  // =====================
+  const recent10 = arr.slice(-10);
+  const t = recent10.filter(x => x === "T").length;
+  const x = recent10.length - t;
+
+  if (t >= 8) {
+    signals.push({ side: "X", score: 50 });
+    reasons.push("Quá T → đảo X");
+  }
+
+  if (x >= 8) {
+    signals.push({ side: "T", score: 50 });
+    reasons.push("Quá X → đảo T");
+  }
+
+  // =====================
+  // MOMENTUM BREAK
+  // =====================
+  if (streak >= 5) {
+    signals.push({
+      side: last === "T" ? "X" : "T",
+      score: 65
+    });
+
+    reasons.push("Momentum Break");
+  }
+
+  // =====================
+  // MARKOV (1-step)
+  // =====================
+  let TT = 0, TX = 0, XT = 0, XX = 0;
 
   for (let i = 0; i < arr.length - 1; i++) {
-
-    const pair =
-      arr[i] + arr[i + 1];
+    const pair = arr[i] + arr[i + 1];
 
     if (pair === "TT") TT++;
     if (pair === "TX") TX++;
@@ -154,105 +161,62 @@ function analyzePattern(pattern) {
     if (pair === "XX") XX++;
   }
 
-  if (last === "T") {
+  const lastPair = arr[arr.length - 2] + arr[arr.length - 1];
 
-    if (TT > TX) {
+  let markovT = 0;
+  let markovX = 0;
 
-      signals.push({
-        side: "T",
-        score: 30
-      });
-
-      reasons.push(
-        `Markov T→T (${TT})`
-      );
-
-    } else {
-
-      signals.push({
-        side: "X",
-        score: 30
-      });
-
-      reasons.push(
-        `Markov T→X (${TX})`
-      );
-    }
-
+  if (lastPair.startsWith("T")) {
+    const total = TT + TX || 1;
+    markovT = TT / total;
+    markovX = TX / total;
   } else {
-
-    if (XX > XT) {
-
-      signals.push({
-        side: "X",
-        score: 30
-      });
-
-      reasons.push(
-        `Markov X→X (${XX})`
-      );
-
-    } else {
-
-      signals.push({
-        side: "T",
-        score: 30
-      });
-
-      reasons.push(
-        `Markov X→T (${XT})`
-      );
-    }
+    const total = XT + XX || 1;
+    markovT = XT / total;
+    markovX = XX / total;
   }
+
+  signals.push({
+    side: markovT > markovX ? "T" : "X",
+    score: Math.max(markovT, markovX) * 80
+  });
+
+  reasons.push("Markov Prob");
 
   // =====================
   // TỔNG HỢP
   // =====================
-
   let scoreT = 0;
   let scoreX = 0;
 
   for (const s of signals) {
-
-    if (s.side === "T")
-      scoreT += s.score;
-
-    if (s.side === "X")
-      scoreX += s.score;
+    if (s.side === "T") scoreT += s.score;
+    else scoreX += s.score;
   }
 
-  const totalScore =
-    scoreT + scoreX;
+  const total = scoreT + scoreX;
 
-  if (totalScore < 50) {
+  if (total < 40) {
     return {
       du_doan: "Không rõ cầu",
       do_tin_cay: "0%",
-      ly_do: "Không đủ tín hiệu"
+      ly_do: "Tín hiệu yếu"
     };
   }
 
-  const winner =
-    scoreT > scoreX
-      ? "Tài"
-      : "Xỉu";
+  let confidence = Math.round(
+    (Math.max(scoreT, scoreX) / total) * 100
+  );
 
-  const confidence =
-    Math.round(
-      (
-        Math.max(
-          scoreT,
-          scoreX
-        ) /
-        totalScore
-      ) * 100
-    );
+  // =====================
+  // CALIBRATION (chống ảo)
+  // =====================
+  confidence = Math.max(50, Math.min(95, confidence));
 
   return {
-    du_doan: winner,
-    do_tin_cay:
-      confidence + "%",
-    ly_do: reasons.join(" | "),
+    du_doan: scoreT > scoreX ? "Tài" : "Xỉu",
+    do_tin_cay: confidence + "%",
+    ly_do: reasons.join(" | ")
   };
 }
 
