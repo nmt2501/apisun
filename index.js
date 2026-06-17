@@ -15,6 +15,8 @@ let patternHistory = [];
 
 let lastProcessedPhien = null;
 
+let processedPhien = null;
+
 let stats = {
   tong_phien: 0,
   thang: 0,
@@ -281,11 +283,16 @@ if (
   lastProcessedPhien !== data.phien
 ) {
 
-  patternHistory.push(
-    data.ket_qua === "Tài" ? "T" : "X"
-  );
+  if (data.phien !== processedPhien) {
 
-  patternHistory = patternHistory.slice(-50);
+    patternHistory.push(
+      data.ket_qua === "Tài" ? "T" : "X"
+    );
+
+    patternHistory = patternHistory.slice(-50);
+
+    processedPhien = data.phien;
+  }
 
   if (
     lastPrediction &&
